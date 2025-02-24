@@ -22,10 +22,19 @@ let postCRUD = async (req, res) => {
 
 }
 
+let displayGetCRUD = async (req, res) => {
+    let data = await CRUDService.getAllUser();
+    console.log(data);
+    return res.render("displayCRUD.ejs", {
+        dataTable: data
+    });
+}
+
 // khong co nay thi se khong the su dung ben ngoai
 module.exports = {
     // key: value
     getHomePage: getHomePage,
     getCRUD: getCRUD,
-    postCRUD: postCRUD
+    postCRUD: postCRUD,
+    displayGetCRUD: displayGetCRUD
 }
