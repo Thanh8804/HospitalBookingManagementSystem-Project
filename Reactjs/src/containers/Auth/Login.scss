@@ -4,10 +4,15 @@
 
     .login-container {
         width: 400px;
-        height: 100%;
-        margin: 0 auto;
+        height: 450px;
         background: white;
         border-radius: 15px;
+        position: absolute;
+        top: 0;
+        margin: auto;
+        bottom: 0;
+        right: 0;
+        left: 0;
 
         .login-content {
             padding: 15px;
@@ -21,6 +26,17 @@
 
             .login-input {
                 margin: 7px 0;
+
+                .custom-input-password {
+                    position: relative;
+
+                    i {
+                        position: absolute;
+                        right: 5px;
+                        top: 10px;
+                        cursor: pointer;
+                    }
+                }
             }
 
             .btn-login {
