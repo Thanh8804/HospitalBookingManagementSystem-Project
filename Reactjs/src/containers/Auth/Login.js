@@ -5,6 +5,7 @@ import * as actions from "../../store/actions";
 import './Login.scss';
 import { FormattedMessage } from 'react-intl';
 import { use } from 'react';
+import { handleLoginApi } from '../../services/userService';
 
 class Login extends Component {
     constructor(props) {
@@ -13,6 +14,7 @@ class Login extends Component {
             username: '',
             password: '',
             isShowPassword: false,
+            errMessage: '',
         }
     }
 
@@ -28,10 +30,25 @@ class Login extends Component {
             password: event.target.value,
         })
     }
-    handleLogin = () => {
-        console.log('username', this.state.username, 'password', this.state.password);
+    handleLogin = async () => {
+        this.setState({
+            errMessage: '',
+        })
 
-        console.log('all', this.state);
+        try {
+            await handleLoginApi(this.state.username, this.state.password)
+        }
+        catch (error) {
+            console.log('error', error, error.response);
+            if(error.respone){
+                if(error.respone.data){
+                    this.setState({
+                        errMessage: error.response.data.message,
+                    })
+                }
+            }
+        }
+
     }
     handleShowHidePassword = () => {
         this.setState({
@@ -72,6 +89,9 @@ class Login extends Component {
                                     <i className={this.state.isShowPassword ? "fas fa-eye" : 'far fa-eye-slash'}></i>
                                 </span>
                             </div>
+                        </div>
+                        <div className='col-12' style={{ color: 'red' }}>
+                            {this.state.errMessage}
                         </div>
                         <div className='col-12 '>
                             <button className='btn-login' onClick={(event) => this.handleLogin(event)}>
