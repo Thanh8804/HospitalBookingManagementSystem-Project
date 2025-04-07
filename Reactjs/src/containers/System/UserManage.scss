@@ -26,28 +26,67 @@
     color: white;
 }
 
-.btn-edit{
+.btn-edit {
     width: 50px;
     border: none;
     outline: none;
     background-color: transparent;
     color: orange;
 
-    &:hover{
+    &:hover {
         background-color: transparent !important;
         color: orange !important;
     }
 }
 
-.btn-delete{
+.btn-delete {
     width: 50px;
     border: none;
     outline: none;
     background-color: transparent;
     color: rgb(241, 14, 14);
 
-    &:hover{
+    &:hover {
         background-color: transparent !important;
         color: rgb(241, 14, 14) !important;
+    }
+}
+
+.modal-user-container {
+    .modal-content {
+        .modal-header {
+            button {
+                background-color: transparent !important;
+                color: white;
+                border: none;
+                font-size: 27px;
+            }
+        }
+    }
+
+    .modal-user-body {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            width: 49%;
+
+            // ở đây dùng dấu & để chỉ định class này ngang hàng với class cha input-container
+            &.max-width-input {
+                width: 100%;
+            }
+
+            input {
+                padding: 10px;
+                border-radius: 5px;
+                height: 30px;
+                border: solid 1px grey;
+                outline: none;
+                padding: 0 10px;
+            }
+        }
     }
 }
