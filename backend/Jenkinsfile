@@ -1,0 +1,291 @@
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: node
+    image: node:22.14-alpine
+    command:
+    - sleep
+    args:
+    - infinity
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    command:
+    - sleep
+    args:
+    - 9999999
+    volumeMounts:
+    - name: docker-config
+      mountPath: /kaniko/.docker
+    resources:
+      requests:
+        cpu: "300m"
+        memory: "512Mi"
+      limits:
+        cpu: "600m"
+        memory: "1024Mi"
+  - name: trivy
+    image: aquasec/trivy:latest
+    command:
+    - sleep
+    args:
+    - 9999999
+    resources:
+      requests:
+        cpu: "400m"
+        memory: "800Mi"
+      limits:
+        cpu: "800m"
+        memory: "1200Mi"
+  volumes:
+  - name: docker-config
+    projected:
+      sources:
+      - secret:
+          name: docker-credentials
+          items:
+          - key: .dockerconfigjson
+            path: config.json
+'''
+        }
+    }
+
+    // Pipeline parameters for reusability
+    parameters {
+        string(name: 'APP_FOLDER', defaultValue: 'backend', description: 'Application folder to build')
+        string(name: 'DOCKER_IMAGE', defaultValue: 'thanh8804/hospital-booking-backend-image', description: 'Docker image name')
+        string(name: 'GIT_REPO_URL', defaultValue: 'https://github.com/Thanh8804/hospital-booking-project.git', description: 'Git repository URL')
+        string(name: 'MANIFEST_REPO_URL', defaultValue: 'https://github.com/Thanh8804/smash-shop-k8s-mainfest.git', description: 'Kubernetes manifest repository URL')
+        string(name: 'SONAR_URL', defaultValue: 'http://34.53.70.78:31000', description: 'SonarQube server URL')
+        string(name: 'SONAR_PROJECT_KEY', defaultValue: 'hospital-booking-backend', description: 'SonarQube project key')
+        string(name: 'ARGOCD_SERVER', defaultValue: 'argocd-server.argocd.svc.cluster.local:443', description: 'ArgoCD server address')
+        string(name: 'ARGOCD_APP', defaultValue: 'hospital-booking-backend', description: 'ArgoCD application name')
+    }
+
+    environment {
+        CI = 'true'
+        IMAGE_TAG = "${BUILD_NUMBER}" // Use build number as image tag
+        PIPELINE_NAME = "${env.JOB_NAME}" // For email notifications
+        FULL_IMAGE_NAME = "${params.DOCKER_IMAGE}:${IMAGE_TAG}" // Full Docker image name with tag
+        CHANGESET_PATTERN = "${params.APP_FOLDER}/**" // Pattern for changeset condition
+    }
+
+    stages {
+        stage('Setup Environment') {
+            steps {
+                container('node') {
+                    script {
+                        echo "Setting up environment for ${params.APP_FOLDER}"
+                        sh 'npm version'
+                        sh 'apk add --no-cache git'
+                        sh '''
+                            apk add --no-cache openjdk17
+                            export JAVA_HOME=/usr/lib/jvm/java-17-openjdk
+                            export PATH=$JAVA_HOME/bin:$PATH
+                            java -version
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                container('node') {
+                    checkout scmGit(
+                        branches: [[name: '*/main']],
+                        userRemoteConfigs: [[
+                            url: "${params.GIT_REPO_URL}",
+                            credentialsId: 'github-token'
+                        ]]
+                    )
+                }
+            }
+        }
+
+        // Reusable function for Trivy scanning
+        script {
+            def runTrivyScan = { String scanType, String target, String outputFile ->
+                container('trivy') {
+                    sh """
+                        trivy ${scanType} --no-progress --severity MEDIUM,HIGH,CRITICAL \
+                            ${scanType == 'image' ? '--skip-files ".npm/_cacache/*" --timeout 10m' : '--scanners vuln,secret'} \
+                            --format table ${target} > ${outputFile} 2>&1
+                        cat ${outputFile}
+                    """
+                    sh """
+                        CRITICAL_COUNT=\$(grep -oP 'CRITICAL: \\K[0-9]+' ${outputFile} | head -1)
+                        if [ "\$CRITICAL_COUNT" != "" ] && [ "\$CRITICAL_COUNT" -gt 0 ]; then
+                            echo "❌ Critical vulnerabilities found in ${scanType} scan (\$CRITICAL_COUNT), failing pipeline"
+                            exit 1
+                        else
+                            echo "✅ No critical vulnerabilities found in ${scanType} scan."
+                        fi
+                    """
+                }
+            }
+
+            // Reusable function for Git push operations
+            def gitPushManifest = { String repoUrl, String token, String image ->
+                container('node') {
+                    withCredentials([string(credentialsId: 'githubtoken', variable: 'GIT_TOKEN')]) {
+                        sh """
+                            set -e
+                            git clone ${repoUrl}
+                            cd smash-shop-k8s-mainfest/k8s-manifests/${params.APP_FOLDER}
+                            sed -i.bak "s|${params.DOCKER_IMAGE}:.*|${image}|" deployment.yaml
+                            git config user.email "chithanh080804@gmail.com"
+                            git config user.name "Thanh8804@"
+                            git add deployment.yaml
+                            git commit -m "Update image to ${image}"
+                            git push https://${GIT_TOKEN}@${repoUrl.replace('https://', '')} HEAD:main
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Backend Pipeline') {
+            when {
+                changeset "${CHANGESET_PATTERN}"
+            }
+            steps {
+                // Wrap all backend-related steps in the APP_FOLDER directory
+                dir("${params.APP_FOLDER}") {
+                    stage('Build and Test') {
+                        parallel {
+                            stage('Build') {
+                                steps {
+                                    container('node') {
+                                        sh 'npm ci'
+                                    }
+                                }
+                            }
+                            stage('Test') {
+                                steps {
+                                    container('node') {
+                                        sh 'npm test -- --coverage || true'
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    stage('Code Analysis') {
+                        parallel {
+                            stage('SonarQube Scan') {
+                                environment {
+                                    SONAR_AUTH_TOKEN = credentials('sonarqube-token')
+                                    SCANNER_HOME = tool 'sonarqube'
+                                }
+                                steps {
+                                    container('node') {
+                                        withSonarQubeEnv(installationName: 'sonarqube') {
+                                            sh """
+                                                ${SCANNER_HOME}/bin/sonar-scanner \
+                                                    -Dsonar.projectKey=${params.SONAR_PROJECT_KEY} \
+                                                    -Dsonar.host.url=${params.SONAR_URL} \
+                                                    -Dsonar.login=\${SONAR_AUTH_TOKEN}
+                                            """
+                                        }
+                                    }
+                                }
+                            }
+                            stage('Trivy Source Scan') {
+                                steps {
+                                    script {
+                                        runTrivyScan('fs', '.', 'trivy-source.txt')
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    stage('Quality Gate') {
+                        steps {
+                            container('node') {
+                                timeout(activity: true, time: 2, unit: 'MINUTES') {
+                                    waitForQualityGate abortPipeline: true, credentialsId: 'sonarqube-token'
+                                }
+                            }
+                        }
+                    }
+
+                    stage('Build and Push Docker Image') {
+                        steps {
+                            container(name: 'kaniko', shell: '/busybox/sh') {
+                                sh """#!/busybox/sh
+                                    /kaniko/executor \
+                                        --context `pwd` \
+                                        --destination ${FULL_IMAGE_NAME} \
+                                        --cache=true
+                                """
+                            }
+                        }
+                    }
+
+                    stage('Trivy Image Scan') {
+                        steps {
+                            script {
+                                runTrivyScan('image', "${FULL_IMAGE_NAME}", 'trivy-image.txt')
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // stage('Update Manifests') {
+        //     when {
+        //         changeset "${CHANGESET_PATTERN}"
+        //     }
+        //     steps {
+        //         script {
+        //             gitPushManifest("${params.MANIFEST_REPO_URL}", 'githubtoken', "${FULL_IMAGE_NAME}")
+        //         }
+        //     }
+        // }
+
+        // stage('Trigger ArgoCD Sync') {
+        //     when {
+        //         changeset "${CHANGESET_PATTERN}"
+        //     }
+        //     steps {
+        //         container('node') {
+        //             withCredentials([string(credentialsId: 'argocd-token', variable: 'ARGOCD_TOKEN')]) {
+        //                 sh """
+        //                     apk add --no-cache curl
+        //                     curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+        //                     install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+        //                     rm argocd-linux-amd64
+        //                     argocd login ${params.ARGOCD_SERVER} --username admin --password \${ARGOCD_TOKEN} --insecure
+        //                     argocd app sync ${params.ARGOCD_APP}
+        //                 """
+        //             }
+        //         }
+        //     }
+        // }
+    }
+
+    post {
+        always {
+            echo "Pipeline '${PIPELINE_NAME}' completed."
+        }
+        success {
+            emailext attachLog: true,
+                     body: "The pipeline '${PIPELINE_NAME} Build #${BUILD_NUMBER}' has completed successfully.",
+                     subject: "Pipeline Success: ${PIPELINE_NAME} - Build #${BUILD_NUMBER}",
+                     to: 'chithanh080804@gmail.com'
+        }
+        failure {
+            emailext attachLog: true,
+                     body: "The pipeline '${PIPELINE_NAME}' has failed. Please review the attached logs.",
+                     subject: "Pipeline Failed: ${PIPELINE_NAME} - Build #${BUILD_NUMBER}",
+                     to: 'chithanh080804@gmail.com'
+        }
+    }
+}
