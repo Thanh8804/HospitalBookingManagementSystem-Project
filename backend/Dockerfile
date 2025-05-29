@@ -1,32 +1,29 @@
 # Stage 1: Build
 FROM node:14-alpine AS build 
-
-# Tạo user và group với home directory hợp lệ
-RUN addgroup --system appgroup && \
-    adduser --system --ingroup appgroup --home /home/appuser appuser
-
-# Tạo home và thư mục làm việc, set quyền
-RUN mkdir -p /home/appuser /app && \
-    chown -R appuser:appgroup /home/appuser /app
     
 # Set working directory
 WORKDIR /app 
 
 # Copy package files and install dependencies
 COPY package*.json ./
-
-#Cài đặt production dependencies nhanh hơn
-RUN npm ci --only=production  
+RUN npm install && npm cache clean --force
 
 # Copy source files
-COPY . .
+COPY src ./src
+COPY .babelrc .
+COPY .sequelizerc .
+
 
 # Stage 2: Production
 FROM node:14-alpine AS production
 
-# Tạo user và group với home directory hợp lệ
 RUN addgroup --system appgroup && \
     adduser --system --ingroup appgroup --home /home/appuser appuser
+
+# Tạo user và group với home directory hợp lệ
+RUN mkdir -p /home/appuser /app && \
+    chown -R appuser:appgroup /home/appuser /app
+
 
 # Tạo home và thư mục làm việc, set quyền
 RUN mkdir -p /home/appuser /app && \
@@ -34,9 +31,10 @@ RUN mkdir -p /home/appuser /app && \
 
 WORKDIR /app
 
-ENV NODE_ENV=production
-
 COPY --from=build /app /app
+RUN chown -R appuser:appgroup /app
+
+USER appuser
 
 # Expose port
 EXPOSE  8080
