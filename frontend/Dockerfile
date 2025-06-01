@@ -11,7 +11,6 @@ RUN npm install && npm cache clean --force
 COPY public ./public
 COPY server ./server
 COPY src ./src
-COPY .env .
 # COPY . .
 
 
