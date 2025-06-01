@@ -23,11 +23,11 @@ spec:
       mountPath: /kaniko/.docker
     resources:
       requests:
-        cpu: "300m"
-        memory: "512Mi"
+        cpu: "800m"
+        memory: "2000Mi"
       limits:
-        cpu: "600m"
-        memory: "1024Mi"
+        cpu: "1000m"
+        memory: "4000Mi"
   - name: trivy 
     image: aquasec/trivy:latest 
     command: 
@@ -58,7 +58,49 @@ spec:
         IMAGE_TAG = "${BUILD_NUMBER}" // Use build number as image tag
         PIPELINE_NAME = "${env.JOB_NAME}" // send email with pipeline name
     }
+    triggers {
+        pollSCM('* * * * *') // Poll SCM every minute
+    }
+    options {
+        skipDefaultCheckout() // Skip automatic SCM checkout
+    }
+    when {
+        changeset "**/frontend/**" // Run pipeline only if changes in frontend directory
+    }
     stages {
+        stage('Check Frontend Changes') {
+            steps {
+                container('node') {
+                    script {
+                        def changeLogSets = currentBuild.changeSets
+                        def changedFrontend = false
+
+                        for (int i = 0; i < changeLogSets.size(); i++) {
+                            def entries = changeLogSets[i].items
+                            for (int j = 0; j < entries.length; j++) {
+                                def files = entries[j].affectedFiles
+                                for (int k = 0; k < files.size(); k++) {
+                                    def file = files[k]
+                                    if (file.path.startsWith("frontend/")) {
+                                        changedFrontend = true
+                                        break
+                                    }
+                                }
+                            }
+                        }
+
+                        if (!changedFrontend) {
+                            echo "No changes in 'frontend/' directory. Skipping pipeline."
+                            currentBuild.result = 'SUCCESS'
+                            // Exit the pipeline early
+                            return
+                        } else {
+                            echo "Changes detected in 'frontend/'. Proceeding with pipeline..."
+                        }
+                    }
+                }
+            }
+        }
         stage('Check npm and install git') {
             steps {
                 container('node') {
