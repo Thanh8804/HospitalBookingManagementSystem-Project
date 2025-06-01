@@ -8,11 +8,11 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install && npm cache clean --force
 
-# Copy source files
 COPY public ./public
 COPY server ./server
 COPY src ./src
 COPY .env .
+# COPY . .
 
 
 # Stage 2: Production
@@ -38,7 +38,7 @@ RUN chown -R appuser:appgroup /app
 USER appuser
 
 # Expose port
-EXPOSE  8080
+EXPOSE  3000
 
 # Start servera
 CMD ["npm", "start"]
