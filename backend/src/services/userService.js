@@ -126,6 +126,8 @@ let createNewUser = (data) => {
                     gender: data.gender === "1" ? true : false,
                     roleId: data.roleId,
                     phonenumber: data.phonenumber,
+                    positionId: data.positionId,
+                    image: data.avatar
                 })
                 resolve({
                     errCode: 0,
@@ -168,24 +170,38 @@ let deleteUser = (userId) => {
 let updateUserData = (data) => {
     return new Promise(async (resolve, reject) => {
         try {
-            if (!data.id) {
+            if (!data.id || !data.roleId || !data.positionId || !data.gender) {
                 resolve({
                     errCode: 2,
                     message: "Missing required parameter!"
                 })
             }
             let user = await db.User.findOne({
-                where: { id: data.id }
-            });
+                where: { id: data.id },
+                raw: false
+            })
             if (user) {
-                db.User.update(
-                    {
-                        firstName: data.firstName,
-                        lastName: data.lastName,
-                        address: data.address,
-                    },
-                    { where: { id: data.id } }
-                )
+                // db.User.update(
+                //     {
+                //         firstName: data.firstName,
+                //         lastName: data.lastName,
+                //         address: data.address,
+                        
+                //     },
+                //     { where: { id: data.id } }
+                // )
+                
+                user.firstName = data.firstName;
+                user.lastName = data.lastName;
+                user.address = data.address;
+                user.roleId = data.roleId;
+                user.positionId = data.positionId;
+                user.gender = data.gender;
+                user.phonenumber = data.phonenumber;
+                if(data.avatar){
+                    user.image = data.avatar;
+                }
+                await user.save();
                 resolve({
                     errCode: 0,
                     message: "Update the user succeed!"
