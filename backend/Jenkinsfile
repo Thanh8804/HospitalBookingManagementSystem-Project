@@ -141,7 +141,7 @@ spec:
                                     sh '''
                                         $SCANNER_HOME/bin/sonar-scanner \
                                         -Dsonar.projectKey=hospital-booking-backend \
-                                        -Dsonar.host.url=http://34.53.70.78:31000/ \
+                                        -Dsonar.host.url=http://35.233.235.112:31000/ \
                                         -Dsonar.login=$SONAR_AUTH_TOKEN
                                     '''
                                 }
