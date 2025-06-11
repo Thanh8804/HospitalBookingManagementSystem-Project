@@ -23,11 +23,11 @@ spec:
       mountPath: /kaniko/.docker
     resources:
       requests:
-        cpu: "300m"
-        memory: "512Mi"
+        cpu: "800m"
+        memory: "2000Mi"
       limits:
-        cpu: "600m"
-        memory: "1024Mi"
+        cpu: "1000m"
+        memory: "4000Mi"
   - name: trivy 
     image: aquasec/trivy:latest 
     command: 
@@ -73,8 +73,8 @@ spec:
             }
         }
         stage('Check npm and install git') {
-            when{
-                changeset "**/backend/**"
+            when {
+                changeset "**/frontend/**"
             }
             steps {
                 container('node') {
@@ -82,11 +82,12 @@ spec:
                     sh 'apk add --no-cache git'
                 }
             }
+            
         }
         // this stage is used to install JDK 17 for sonar scan and build the project
         stage('Install jdk') {
             when {
-                changeset "**/backend/**"
+                changeset "**/frontend/**"
             }
             steps {
                 container('node') {
@@ -99,15 +100,16 @@ spec:
                 }
             }
         }
+
         stage('Build and Test') {
             when {
-                changeset "**/backend/**"
+                changeset "**/frontend/**"
             }
             parallel {
                 stage('Build') {
                     steps {
                         container('node') {
-                            dir('backend') {
+                            dir('frontend') {
                                 sh 'npm ci'
                             }
                         }
@@ -116,7 +118,7 @@ spec:
                 stage('Test') {
                     steps {
                         container('node') {
-                            dir('backend') {
+                            dir('frontend') {
                                 sh 'npm test -- --coverage || true' 
                             }
                         }
@@ -126,7 +128,7 @@ spec:
         }
         stage('Code Analysis') {
             when {
-                changeset "**/backend/**"
+                changeset "**/frontend/**"
             }
             parallel {
                 stage('SonarQube Scan') {
@@ -136,11 +138,11 @@ spec:
                     }
                     steps {
                         container('node') {
-                            dir('backend'){
+                            dir('frontend'){
                                 withSonarQubeEnv(installationName: 'sonarqube') {
                                     sh '''
                                         $SCANNER_HOME/bin/sonar-scanner \
-                                        -Dsonar.projectKey=hospital-booking-backend \
+                                        -Dsonar.projectKey=hospital-booking-frontend \
                                         -Dsonar.host.url=http://35.233.235.112:31000/ \
                                         -Dsonar.login=$SONAR_AUTH_TOKEN
                                     '''
@@ -152,7 +154,7 @@ spec:
                 stage('Trivy Source Scan') {
                     steps {
                         container('trivy') {
-                            dir('backend') {
+                            dir('frontend') {
                                 sh '''
                                     trivy fs --no-progress --severity MEDIUM,HIGH,CRITICAL \
                                     --scanners vuln,secret \
@@ -176,11 +178,11 @@ spec:
         }
         stage('Quality Gate') {
             when {
-                changeset "**/backend/**"
+                changeset "**/frontend/**"
             }
             steps {
                 container('node') {
-                    dir('backend'){
+                    dir('frontend'){
                         timeout(activity: true, time: 2, unit: 'MINUTES') {
                             waitForQualityGate abortPipeline: true, credentialsId: 'sonarqube-token'
                         }
@@ -190,15 +192,15 @@ spec:
         }
         stage('Build and Push Docker Image') {
             when {
-                changeset "**/backend/**"
+                changeset "**/frontend/**"
             }
             steps {
                 container(name: 'kaniko', shell: '/busybox/sh') {
-                    dir('backend'){
+                    dir('frontend'){
                         sh '''#!/busybox/sh
                             /kaniko/executor \
                               --context `pwd` \
-                              --destination thanh8804/hospital-booking-backend-image:$IMAGE_TAG \
+                              --destination thanh8804/hospital-booking-frontend-image:$IMAGE_TAG \
                               --cache=true
                         '''
                     }
@@ -207,15 +209,15 @@ spec:
         }
         stage('Trivy'){
             when {
-                changeset "**/backend/**"
+                changeset "**/frontend/**"
             }
             steps {
               container('trivy'){
-                  dir('backend'){
+                  dir('frontend'){
                         sh '''
                         trivy image --no-progress --severity MEDIUM,HIGH,CRITICAL \
                                     --skip-files ".npm/_cacache/*" \
-                                    --timeout 10m thanh8804/hospital-booking-backend-image:$IMAGE_TAG > trivy-image.txt 2>&1
+                                    --timeout 10m thanh8804/hospital-booking-frontend-image:$IMAGE_TAG > trivy-image.txt 2>&1
                         cat trivy-image.txt
                         '''
                         sh '''
@@ -233,7 +235,7 @@ spec:
         }
         stage('Update Dev Manifests') {
             when {
-                changeset "**/backend/**"
+                changeset "**/frontend/**"
             }
             steps {
                 container('node') {
@@ -241,12 +243,12 @@ spec:
                         retry(3){
                             sh '''
                                 git clone https://github.com/Thanh8804/hospital-booking-manifests.git
-                                cd hospital-booking-manifests/k8s-manifests/backend
+                                cd hospital-booking-manifests/k8s-manifests/frontend
                                 sed -i "s/newTag:.*/newTag: \\"${BUILD_NUMBER}\\"/g" overlays/dev/kustomization.yaml
                                 git config user.email "chithanh080804@gmail.com"
                                 git config user.name "Thanh8804@"
                                 git add overlays/dev/kustomization.yaml
-                                git commit -m "Update dev image to thanh8804/hospital-booking-backend-image:${BUILD_NUMBER}" || echo "No changes to commit"
+                                git commit -m "Update dev image to thanh8804/hospital-booking-frontend-image:${BUILD_NUMBER}" || echo "No changes to commit"
                                 git push https://$GIT_TOKEN@github.com/Thanh8804/hospital-booking-manifests.git HEAD:main
                             '''
                         }
@@ -256,7 +258,7 @@ spec:
         }
         stage('Trigger ArgoCD Sync DEV') {
             when {
-                changeset "**/backend/**"
+                changeset "**/frontend/**"
             }
             steps {
                 container('node') {
@@ -267,7 +269,7 @@ spec:
                             install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
                             rm argocd-linux-amd64
                             argocd login argocd-server.argocd.svc.cluster.local:443 --username admin --password $ARGOCD_TOKEN --insecure
-                            argocd app sync hospital-booking-backend-development
+                            argocd app sync hospital-booking-frontend-development
                          '''
                      }
                  }
@@ -275,19 +277,19 @@ spec:
         }
         stage('Update Prod Manifest') {
             when {
-               changeset "**/backend/**"
+                changeset "**/frontend/**"
             }
             steps {
                 container('node') {
                     withCredentials([string(credentialsId: 'githubtoken', variable: 'GIT_TOKEN')]) {
                         retry(3){
                             sh '''
-                                cd hospital-booking-manifests/k8s-manifests/backend
+                                cd hospital-booking-manifests/k8s-manifests/frontend
                                 sed -i "s/newTag:.*/newTag: \\"${BUILD_NUMBER}\\"/g" overlays/prod/kustomization.yaml
                                 git config user.email "chithanh080804@gmail.com"
                                 git config user.name "Thanh8804@"
                                 git add overlays/prod/kustomization.yaml
-                                git commit -m "Update prod image to thanh8804/hospital-booking-backend-image:${BUILD_NUMBER}" || echo "No changes to commit"
+                                git commit -m "Update prod image to thanh8804/hospital-booking-frontend-image:${BUILD_NUMBER}" || echo "No changes to commit"
                                 git push https://$GIT_TOKEN@github.com/Thanh8804/hospital-booking-manifests.git HEAD:main
                             '''
                         }
@@ -297,7 +299,7 @@ spec:
         }
         stage('Trigger ArgoCD Sync PROD') {
             when{
-                changeset "**/backend/**"
+                changeset "**/frontend/**"
             }
             steps {
                 container('node') {
@@ -305,7 +307,7 @@ spec:
                         catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                             retry(3) {
                                 sh '''
-                                    argocd app sync hospital-booking-backend-production --timeout 300 > argocd-sync-prod.log 2>&1
+                                    argocd app sync hospital-booking-frontend-production --timeout 300 > argocd-sync-prod.log 2>&1
                                     cat argocd-sync-prod.log
                                 '''
                             }
