@@ -79,31 +79,58 @@ let hashUserPassword = (password) => {
     })
 }
 
+// let getAllUsers = (userId) => {
+//     return new Promise(async (resolve, reject) => {
+//         try {
+//             let users = '';
+//             if (userId === 'ALL') {
+//                 users = await db.User.findAll({
+//                     attributes: {
+//                         exclude: ["password"]
+//                     },
+//                 })
+//             }
+//             if (userId && userId !== 'ALL') {
+//                 users = await db.User.findOne({
+//                     where: { id: userId },
+//                     attributes: {
+//                         exclude: ["password"]
+//                     },
+//                 })
+//             }
+//             resolve(users);
+//         } catch (e) {
+//             reject(e);
+//         }
+//     })
+// }
 let getAllUsers = (userId) => {
     return new Promise(async (resolve, reject) => {
         try {
-            let users = '';
+            let users = [];
             if (userId === 'ALL') {
                 users = await db.User.findAll({
                     attributes: {
                         exclude: ["password"]
                     },
-                })
+                });
             }
             if (userId && userId !== 'ALL') {
-                users = await db.User.findOne({
+                const user = await db.User.findOne({
                     where: { id: userId },
                     attributes: {
                         exclude: ["password"]
                     },
-                })
+                });
+                users = user ? [user] : [];
             }
             resolve(users);
         } catch (e) {
             reject(e);
         }
-    })
-}
+    });
+};
+
 
 let createNewUser = (data) => {
     return new Promise(async (resolve, reject) => {
@@ -230,7 +257,7 @@ let getAllCodeService = (typeInput) => {
             else {
                 let res = {};
                 let allcode = await db.Allcode.findAll({
-                    where: { type: typeInput }
+                    where: { type: typeInput.toUpperCase() }
                 })
                 res.errCode = 0;
                 res.data = allcode;
