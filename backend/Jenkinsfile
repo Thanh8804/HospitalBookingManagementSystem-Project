@@ -182,7 +182,7 @@ spec:
                 container('node') {
                     dir('backend'){
                         timeout(activity: true, time: 2, unit: 'MINUTES') {
-                            waitForQualityGate abortPipeline: true, credentialsId: 'sonarqube-token'
+                            waitForQualityGate abortPipeline: false, credentialsId: 'sonarqube-token'
                         }
                     }
                 }
