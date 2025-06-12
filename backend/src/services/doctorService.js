@@ -17,9 +17,10 @@ let getTopDoctorHome = (limit) => {
                 raw: false,
                 nest: true
             });
-            for (let i = 0; i < users.length; i++) {
-                if (users[i].image) {
-                    users[i].image = Buffer.from(users[i].image, 'binary').toString('base64');
+
+            for (let user of users) {
+                if (user.image) {
+                    user.image = Buffer.from(user.image, 'binary').toString('base64');
                 }
             }
             resolve({

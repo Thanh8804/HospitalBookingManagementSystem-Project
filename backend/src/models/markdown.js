@@ -2,7 +2,6 @@
 const {
   Model
 } = require('sequelize');
-//const { ROWLOCK } = require('sequelize/types/lib/table-hints');
 module.exports = (sequelize, DataTypes) => {
   class Markdown extends Model {
     /**
