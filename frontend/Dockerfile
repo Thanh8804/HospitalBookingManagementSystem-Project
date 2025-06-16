@@ -10,7 +10,6 @@ RUN npm install && npm cache clean --force
 
 COPY public ./public
 COPY src ./src
-COPY .env ./env
 # COPY . .
 
 
