@@ -1,393 +1,386 @@
 import React, { Component } from 'react';
 import { FormattedMessage } from 'react-intl';
 import { connect } from 'react-redux';
-import {LANGUAGES, CRUD_ACTIONS, CommonUtils} from "../../../utils";
-import * as actions from "../../../store/actions"
-import Lightbox from 'react-image-lightbox';
-import './UserRedux.scss';
+import * as actions from '../../../store/actions';
 import 'react-image-lightbox/style.css';
 import TableManageUser from './TableManageUser';
-import { isBuffer } from 'lodash';
-class UserRedux extends Component {
+import { toast } from 'react-toastify';
+import { deleteUserServices, filterAndPagingUser } from '../../../services';
+import actionTypes from '../../../store/actions/actionTypes';
 
-    // Constructor to initialize state and bind methods
+import { CRUD_ACTIONS, CommonUtils } from '../../../utils';
+
+import './UserRedux.scss';
+
+import ModalUser from '../ModalUser';
+import ModalConfirm from '../ModalConfirm.js';
+import SearchInput from '../../../components/SearchInput.js';
+import FooterPaging from '../../../components/FooterPaging.js';
+import SelectStatusId from '../../../components/SelectStatusId';
+import Loading from '../../../components/Loading';
+
+class UserRedux extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            genderArr: [],
-            positionArr: [],
-            roleArr: [],
-            previewImgURL: '',
-            isOpen: false,
-            
+            genders: [],
+            positions: [],
+            roles: [],
+            previewImageUrl: '',
+            isShowBoxImage: false,
+            isRoomImage: false,
+
+            file: {},
+            fileURL: '',
+
             email: '',
             password: '',
             firstName: '',
             lastName: '',
-            phoneNumber: '',
             address: '',
+            phoneNumber: '',
             gender: '',
             position: '',
-            role: '',
+            roleId: '',
             avatar: '',
 
-            action: '',
-            userEditId: '',
-        }
+            currentAction: CRUD_ACTIONS.CREATE,
+            currentIdUserEdit: '',
+            isOpenModel: false, // model create user
+            isShowModalConfirm: false, // model confirm
+            currentUserId: '',
+
+            users: [],
+            totalPage: 1, // toltalPage
+            count: 1,
+
+            keywordSearchUser: '',
+            roleIdSelected: '', // roleId filter
+            PageIndex: 1,
+            limit: 10,
+
+            isShowLoading: false,
+        };
     }
 
     async componentDidMount() {
-        this.props.getGenderStart();
-        this.props.getPositionStart();
-        this.props.getRoleStart();
-        
+        this.props.fetchKeyFromRedux();
+        await this.handleRefreshTable();
     }
-    componentDidUpdate(prevProps, prevState, snapshot) {
-        if(prevProps.genderRedux !== this.props.genderRedux){
-            let arrGenders = this.props.genderRedux;
-            this.setState({
-                genderArr: arrGenders,
-                gender: arrGenders && arrGenders.length > 0 ? arrGenders[0].keyMap : ''
-            })
-        }
-        if(prevProps.roleRedux !== this.props.roleRedux){
-            let arrRoles = this.props.roleRedux;
-            this.setState({
-                roleArr: arrRoles,
-                role: arrRoles && arrRoles.length > 0 ? arrRoles[0].keyMap : ''
-            })
-        }
-        if(prevProps.positionRedux !== this.props.positionRedux){
-            let arrPositions = this.props.positionRedux;
-            this.setState({
-                positionArr: arrPositions,
-                position: arrPositions && arrPositions.length > 0 ? arrPositions[0].keyMap : ''
-            })
-        }
 
-        if(prevProps.listUsers !== this.props.listUsers){
-            let arrGenders = this.props.genderRedux;
-            let arrRoles = this.props.roleRedux;
-            let arrPositions = this.props.positionRedux;
+    reRenderFilterAndPaging = async (keywordSearchUser, roleIdSelected, PageIndex, limit) => {
+        this.isShowLoading();
+        let response = await filterAndPagingUser({
+            keyword: keywordSearchUser,
+            roleId: roleIdSelected,
+            page: PageIndex,
+            limit,
+        });
+        if (response && response.errorCode === 0) {
             this.setState({
-                email: '',
-                password: '',
-                firstName: '',
-                lastName: '',
-                phoneNumber: '',
-                address: '',
-                gender: arrGenders && arrGenders.length > 0 ? arrGenders[0].keyMap : '',                
-                role: arrRoles && arrRoles.length > 0 ? arrRoles[0].keyMap : '',                
-                
-                position: arrPositions && arrPositions.length > 0 ? arrPositions[0].keyMap : '',
-                avatar: '',
-                action: CRUD_ACTIONS.CREATE,
-                previewImgURL: ''
-            })
+                keywordSearchUser: keywordSearchUser,
+                roleIdSelected: roleIdSelected,
+                PageIndex: PageIndex,
+                limit: limit,
+                totalPage: response.data.totalPage,
+                count: response.data.count,
+                users: response.data.rows,
+                isShowLoading: false,
+            });
         }
-        
-        
-    }
-    handleOnChangeImage = async (event) => {
-            let data = event.target.files;
-            let file = data[0];
-            if (file) {
-                let base64 = await CommonUtils.getBase64(file);
-                let objectUrl = URL.createObjectURL(file);
-                this.setState({
-                    previewImgURL: objectUrl,
-                    avatar: base64
-                })
-            }
-    }
-    openPreviewImage = () => {
-            if (!this.state.previewImgURL) return;
-            this.setState({
-                isOpen: true,
-            })
-    }
-    handleSaveUser = () => {
-        let isValid = this.checkValidateInput();
-        if (isValid === false) return;
-        let {action} = this.state;
-        if(action === CRUD_ACTIONS.CREATE){
-            this.props.createNewUser({
-            email: this.state.email,
-            password: this.state.password,
-            firstName: this.state.firstName,
-            lastName: this.state.lastName,
-            address: this.state.address,
-            phonenumber: this.state.phonenumber,
-            gender: this.state.gender,
-            roleId: this.state.roleId,
-            positionId: this.state.position,
-            avatar: this.state.avatar
-            })
-        }
-        if(action === CRUD_ACTIONS.EDIT){
-            this.props.editAUserRedux({
-                email: this.state.email,
-                password: this.state.password,
-                firstName: this.state.firstName,
-                lastName: this.state.lastName,
-                address: this.state.address,
-                phonenumber: this.state.phonenumber,
-                gender: this.state.gender,
-                roleId: this.state.roleId,
-                positionId: this.state.position,
-                avatar: this.state.avatar
+    };
 
-            })
+    handleRefreshTable = async () => {
+        let { keywordSearchUser, roleIdSelected, PageIndex, limit } = this.state;
+        await this.reRenderFilterAndPaging(keywordSearchUser, roleIdSelected, PageIndex, limit);
+    };
+
+    async componentDidUpdate(prevProps) {
+        if (prevProps.keyForm !== this.props.keyForm) {
+            let { genders, positions, roles } = this.props.keyForm;
+            this.setState({
+                genders: genders,
+                positions: positions,
+                roles: roles,
+
+                gender: genders && genders.length > 0 ? genders[0].keyMap : '',
+                position: positions && positions.length > 0 ? positions[0].keyMap : '',
+                roleId: roles && roles.length > 0 ? roles[0].keyMap : '',
+            });
         }
-        this.props.createNewUser({
-            email: this.state.email,
-            password: this.state.password,
-            firstName: this.state.firstName,
-            lastName: this.state.lastName,
-            address: this.state.address,
-            phoneNumber: this.state.phoneNumber,
-            gender: this.state.gender,
-            roleId: this.state.roleId,
-            positionId: this.state.positionId
-        })
     }
-    handleEditUserFromParent =(user) => {
-        let imageBase64 = '';
-        if(user.image){
-            imageBase64 = new Buffer(user.image, 'base64').toString('binary');
+
+    handleToggleModel = () => {
+        this.setState({ isOpenModel: !this.state.isOpenModel });
+    };
+
+    handleOnchangeImage = async (e) => {
+        let data = e.target.files;
+        let file = data[0];
+
+        if (file) {
+            let base64 = await CommonUtils.getBase64(file);
+            let objectUrl = URL.createObjectURL(file);
+            this.setState({ previewImageUrl: objectUrl, isShowBoxImage: true, avatar: base64, file: file });
         }
+    };
+
+    handleClickEditUser = (dataUser) => {
         this.setState({
-            email: user.email,
-            password: 'HARDCODE',
-            firstName: user.firstName,
-            lastName: user.lastName,
-            address: user.address,
-            phonenumber: user.phonenumber,
-            gender: user.gender,
-            roleId: user.roleId,
-            positionId: user.positionId,
-            avatar: '',
-            previewImgURL: imageBase64,
-            action: CRUD_ACTIONS.EDIT,
-            userEditId: user.id
-        })
-    }
-    checkValidateInput = () => {
-        let isValid = true;
-        let arrCheck = ['email', 'password','firstName', 'lastName', 'phoneNumber', 'address']
-        for(let i=0; i<arrCheck.length; i++){
-            if(!this.state[arrCheck[i]]){
-                isValid = false;
-                alert('This input is required: ' + arrCheck[i])
-                break;
-            }
+            email: dataUser.email,
+            firstName: dataUser.firstName || '',
+            lastName: dataUser.lastName || '',
+            address: dataUser.address || '',
+            password: '123456',
+            phoneNumber: dataUser.phoneNumber || '',
+            gender: dataUser.gender,
+            position: dataUser.position,
+            roleId: dataUser.roleId,
+            previewImageUrl: dataUser.imageURL,
+            isShowBoxImage: true,
+
+            currentAction: CRUD_ACTIONS.EDIT,
+            currentIdUserEdit: dataUser.id,
+        });
+        this.handleToggleModel();
+    };
+
+    handleShowModal = () => {
+        this.handleToggleModel();
+        this.setState({ currentAction: CRUD_ACTIONS.CREATE, previewImageUrl: '', isShowBoxImage: false });
+    };
+
+    handleShowPreviewAvatar = () => {
+        this.setState({ isRoomImage: true });
+    };
+    handleOnchangeInput = (e, key) => {
+        let copyState = { ...this.state };
+        copyState[key] = e.target.value;
+        this.setState({
+            ...copyState,
+        });
+    };
+    toggleModelConfirm = (userId) => {
+        this.setState({
+            isShowModalConfirm: !this.state.isShowModalConfirm,
+            currentUserId: userId,
+        });
+    };
+
+    handleSearchUser = (currentKeyword) => {
+        let { roleIdSelected, limit } = this.state;
+        try {
+            console.log(currentKeyword);
+            this.reRenderFilterAndPaging(currentKeyword, roleIdSelected, 1, limit);
+        } catch (error) {
+            console.log(error);
         }
-        return isValid;
-    }
-    // onChangeInput = (event,id) =>{
-    //     let copyState = {...this.state}
-    //     copyState[id] = event.target.values;
-    //     this.setState({
-    //         ...copyState
-    //     })
-    // }
-    onChangeInput = (event, id) => {
-    let copyState = { ...this.state };
-    copyState[id] = event.target.value;
-    this.setState({
-        ...copyState
-    });
-};
-    
+    };
+
+    handleChangePage = async (numberPage) => {
+        let { keywordSearchUser, roleIdSelected, PageIndex, limit, totalPage } = this.state;
+
+        if (numberPage === 'next') {
+            if (+PageIndex < +totalPage) {
+                console.log('next');
+                this.reRenderFilterAndPaging(keywordSearchUser, roleIdSelected, +this.state.PageIndex + 1, limit);
+                this.setState({
+                    PageIndex: this.state.PageIndex + 1,
+                });
+            }
+        } else if (numberPage === 'back') {
+            if (+PageIndex > 1) {
+                console.log('back');
+                this.reRenderFilterAndPaging(keywordSearchUser, roleIdSelected, +this.state.PageIndex - 1, limit);
+                this.setState({
+                    PageIndex: this.state.PageIndex - 1,
+                });
+            }
+        } else {
+            this.setState({
+                PageIndex: +numberPage,
+            });
+            this.reRenderFilterAndPaging(keywordSearchUser, roleIdSelected, numberPage, limit);
+        }
+    };
+
+    // delete user:
+    deleteUser = async (userId) => {
+        try {
+            let { keywordSearchUser, roleIdSelected, PageIndex, limit } = this.state;
+            let res = await deleteUserServices(userId);
+            if (res && res.errorCode === 0) {
+                toast.success(res?.message, {
+                    position: 'top-right',
+                    autoClose: 3000,
+                    hideProgressBar: true,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                });
+                this.setState({
+                    isShowModalConfirm: !this.state.isShowModalConfirm,
+                    currentUserId: '',
+                });
+
+                await this.reRenderFilterAndPaging(keywordSearchUser, roleIdSelected, PageIndex, limit);
+            } else {
+                toast.error(res.message, {
+                    position: 'top-right',
+                    autoClose: 3000,
+                    hideProgressBar: true,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                });
+            }
+        } catch (error) {
+            console.log('delete user fail: ', error);
+        }
+    };
+
+    refreshForm = () => {
+        let { genders, positions, roles } = this.props.keyForm;
+        this.setState({
+            email: '',
+            password: '',
+            firstName: '',
+            lastName: '',
+            address: '',
+            phoneNumber: '',
+            avatar: '',
+
+            gender: genders && genders.length > 0 ? genders[0].keyMap : '',
+            position: positions && positions.length > 0 ? positions[0].keyMap : '',
+            roleId: roles && roles.length > 0 ? roles[0].keyMap : '',
+        });
+    };
+
+    handleChangeInput = async (id) => {
+        // change input radio
+        let { keywordSearchUser, PageIndex, limit } = this.state;
+        this.reRenderFilterAndPaging(keywordSearchUser, id, PageIndex, limit);
+    };
+
+    isShowLoading = () => {
+        this.setState({
+            isShowLoading: true,
+        });
+    };
+    isHideLoading = () => {
+        this.setState({
+            isShowLoading: false,
+        });
+    };
+
     render() {
-        console.log('check state', this.state);
-        let genders = this.state.genderArr;
-        let roles = this.state.roleArr;
-        let positions = this.state.positionArr;
-        let language = this.props.language;
-        
-        let{ email, password,firstName, lastName, phoneNumber,address,gender,position,role,avatar} = this.state;
+        let { isShowModalConfirm, users } = this.state;
+        let {} = this.props;
+
+        let listSelect = [
+            { text: <FormattedMessage id="admin.role.all" />, id: '' },
+            { text: <FormattedMessage id="admin.role.admin" />, id: 'R1' },
+            { text: <FormattedMessage id="admin.role.doctor" />, id: 'R2' },
+            { text: <FormattedMessage id="admin.role.patient" />, id: 'R3' },
+        ];
 
         return (
-            <div className="user-redux-container">
-                <div className="title">
-                    User Redux with Vp
-                </div>
-                <div className="user-redux-body">
-                    <div className="container">
-                        <div className="row">
-                            <div className="col-12 my-3"><FormattedMessage id="manage-user.add"/></div>
-                            <div className="col-12">{this.props.isGetGenders === true ? 'Loading gender' : ''}</div>
-                            <div className="col-3">
-                                <label><FormattedMessage id="manage-user.email"/></label>
-                                <input className="form-control"type="email"
-                                    value={email}
-                                    onChange={(event) => {this.onChangeInput(event,'email')}}
-                                    disabled={this.state.action === CRUD_ACTIONS.EDIT ? true : false}
-                                />
-                            </div>
-                            <div className="col-3">
-                                <label><FormattedMessage id="manage-user.password"/></label>
-                                <input className="form-control"type="password"
-                                    value={password}
-                                    onChange={(event) => {this.onChangeInput(event,'password')}}
-                                    disabled={this.state.action === CRUD_ACTIONS.EDIT ? true : false}
-
-                                />
-                            </div>
-                            <div className="col-3">
-                                <label><FormattedMessage id="manage-user.first-name"/></label>
-                                <input className="form-control"type="text"
-                                    value={firstName}
-                                    onChange={(event) => {this.onChangeInput(event,'firstName')}}
-                                />
-                            </div>
-                            <div className="col-3">
-                                <label><FormattedMessage id="manage-user.last-name"/></label>
-                                <input className="form-control"type="text"
-                                    value={lastName}
-                                    onChange={(event) => {this.onChangeInput(event,'lastName')}}
-                                />
-                            </div>
-                            <div className="col-3">
-                                <label><FormattedMessage id="manage-user.phone-number"/></label>
-                                <input className="form-control"type="text"
-                                    value={phoneNumber}
-                                    onChange={(event) => {this.onChangeInput(event,'phoneNumber')}}
-                                />
-                            </div>
-                            <div className="col-9">
-                                <label><FormattedMessage id="manage-user.address"/></label>
-                                <input className="form-control"type="text"
-                                    value={address}
-                                    onChange={(event) => {this.onChangeInput(event,'address')}}
-                                />
-                            </div>
-                            <div className="col-3">
-                                <label><FormattedMessage id="manage-user.gender"/></label>
-                                <select className="form-control"
-                                    onChange={(event) => {this.onChangeInput(event,'gender')}}
-                                    value={gender}
-                                >
-                                    
-                                    {genders && genders.length > 0 &&
-                                        genders.map((item, index) => { 
-                                            return (
-                                                <option key={index} value={item.keyMap}>
-                                                    {language === LANGUAGES.VI ? item.valueVi : item.valueEn}
-                                                </option>
-                                            )
-                                        })}
-                                    <option selected>Choose...</option>
-                                    <option>...</option>
-                                </select>
-                            </div>
-                            <div className="col-3">
-                                <label><FormattedMessage id="manage-user.position"/></label>
-                                <select className="form-control"
-                                    onChange={(event) => {this.onChangeInput(event,'position')}}
-                                    value={position}
-                                >
-                                    {positions && positions.length > 0 &&
-                                        positions.map((item, index) => {
-                                            return (
-                                                <option key={index} value={item.keyMap}>
-                                                    {language === LANGUAGES.VI ? item.valueVi : item.valueEn}
-                                                </option>
-                                            )
-                                        })}
-                                    {/* <option selected>Choose...</option>
-                                    <option>...</option> */}
-                                </select>
-                            </div>
-                            
-                            <div className="col-3">
-                                <label><FormattedMessage id="manage-user.role"/></label>
-                                <select className="form-control"
-                                    onChange={(event) => {this.onChangeInput(event,'role')}}
-                                    value={role}
-                                >
-                                    {roles && roles.length > 0 &&
-                                        roles.map((item, index) => {
-                                            return (
-                                                <option key={index} value={item.keyMap}>
-                                                    {language === LANGUAGES.VI ? item.valueVi : item.valueEn}
-                                                </option>
-                                            )
-                                        })}
-                                    {/* <option selected>Choose...</option>
-                                    <option>...</option> */}
-                                </select>
-                            </div>
-                            <div className="col-3">
-                                <label><FormattedMessage id="manage-user.image"/></label>
-                                <div className="preview-img-container">
-                                    <input id="previewImg" type="file" hidden
-                                    onChange={(event) => this.handleOnchangeImage(event)}
-                                    />
-                                    <label className="label-upload" htmlFor="previewImg">Tải ảnh<i className="fas fa-upload"></i></label> 
-                                    <div className="preview-image"
-                                        style={{ backgroundImage: `url(${this.state.previewImgURL})` }}
-                                        onClick={() => this.openPreviewImage()}
-                                    >
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="col-12 my-3">
-                                <button 
-                                    className={this.state.action ===CRUD_ACTIONS.EDIT ?"btn btn-warning" : "btn btn-primary"}
-                                    onClick={() => this.handleSaveUser()}
-                                >
-                                    {this.state.action === CRUD_ACTIONS.EDIT ?
-                                        <FormattedMessage id="manage-user.edit"/> 
-                                        :
-                                        <FormattedMessage id="manage-user.save" />
-                                        
-                                    }
-                                </button>
-                            </div>
-                            <div className="col-12 mb-5">
-                                <TableManageUser 
-                                    handleEditUserFromParentKey={this.handleEditUserFromParent}
-                                    action={this.state.action}
+            <div className="user-redux-container position-loading" id="user-redux">
+                {this.state.isShowLoading && <Loading />}
+                <div className="title">Quản lý người dùng</div>
+                <div className="wrapper-container">
+                    <div className="action-modal">
+                        <div className="df filter">
+                            <SearchInput
+                                placeholder="Tìm kiếm..."
+                                handleSearch={this.handleSearchUser}
+                                delay={800}
+                                className="mr8"
+                            />
+                            <div className="filter-role ml8">
+                                <SelectStatusId
+                                    handleChangeInput={this.handleChangeInput}
+                                    listSelect={listSelect}
+                                    appointment
+                                    statusId={this.state.roleIdSelected}
                                 />
                             </div>
                         </div>
+                        <button className="btn btn-primary btn-add-user" onClick={() => this.handleShowModal()}>
+                            <FormattedMessage id="manage-user.add" />
+                        </button>
                     </div>
-                </div>
-                {this.state.isOpen === true &&
-                    <Lightbox
-                        mainSrc={this.state.previewImgURL}
-                        onCloseRequest={() => this.setState({ isOpen: false })}
+                    <ModalUser
+                        isOpenModel={this.state.isOpenModel}
+                        toggleModel={this.handleToggleModel}
+                        data={this.state}
+                        handleOnchangeInput={this.handleOnchangeInput}
+                        handleOnchangeImage={this.handleOnchangeImage}
+                        handleShowPreviewAvatar={this.handleShowPreviewAvatar}
+                        handleRefreshTable={this.handleRefreshTable}
+                        refreshForm={this.refreshForm}
                     />
-                }
-                
+                    {/* {this.state.isRoomImage && (
+                        <Lightbox
+                            mainSrc={this.state.previewImageUrl}
+                            onCloseRequest={() => this.setState({ isRoomImage: false })}
+                        />
+                    )} */}
+                    <TableManageUser
+                        handleClickEditUser={this.handleClickEditUser}
+                        toggleModelConfirm={this.toggleModelConfirm}
+                        users={users}
+                    />
+                    <FooterPaging
+                        titleTotalRecord="Tổng người dùng"
+                        TotalPage={this.state.totalPage}
+                        PageIndex={this.state.PageIndex}
+                        TotalRecord={this.state.count}
+                        handleChangePage={this.handleChangePage}
+                    />
+                    {isShowModalConfirm ? (
+                        <ModalConfirm
+                            toggleModel={this.toggleModel}
+                            isShowModalConfirm={isShowModalConfirm}
+                            toggleModelConfirm={this.toggleModelConfirm}
+                            handleDeleteItem={this.deleteUser}
+                            text="Xoá người dùng vĩnh viễn bạn chắc chắn chứ!"
+                            type="confirm"
+                            size="nm"
+                            currentUserId={this.state.currentUserId}
+                        />
+                    ) : (
+                        ''
+                    )}
+                </div>
             </div>
-
-
         );
     }
-
 }
 
-const mapStateToProps = state => {
+const mapStateToProps = (state) => {
     return {
-        language: state.app.language,
-        genderRedux: state.admin.genders,
-        roleRedux: state.admin.roles,
-        positionRedux: state.admin.positions,
-        isLoadingGender: state.admin.isLoadingGender,
-        listUsers: state.admin.users
+        languageRedux: state.app.language,
+        keyForm: state.admin.keyForm,
+        allUserRedux: state.admin.allUser,
+        totalPageRedux: state.admin.totalPage,
+        countRedux: state.admin.count,
+        paramsSearchRedux: state.admin.paramsSearch,
     };
 };
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch) => {
     return {
-        getGenderStart: () => dispatch(actions.fetchGenderStart()),
-        getPositionStart: () => dispatch(actions.fetchPositionStart()),
-        getRoleStart: () => dispatch(actions.fetchRoleStart()),
-        createNewUser: (data) => dispatch(actions.createNewUser(data)),
-        fetchUserRedux: () => dispatch(actions.fetchAllUsersStart())
+        fetchKeyFromRedux: () => dispatch(actions.fetchKeyForm()),
+        fetchAllUSerRedux: (paramsSearch) => dispatch(actions.filterAndPagingUserRedux(paramsSearch)),
+        editUserRedux: (user) => dispatch(actions.editUserRedux(user)),
+        setCurrentKeywordRedux: (keyword, page, limit, roleId) =>
+            dispatch({
+                type: actionTypes.SET_PARAMS_SEARCH,
+                data: { keyword, page, limit, roleId },
+            }),
     };
 };
 

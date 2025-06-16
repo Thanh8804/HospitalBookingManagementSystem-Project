@@ -1,110 +1,112 @@
 import React, { Component } from 'react';
-import { FormattedMessage } from 'react-intl';
+
 import { connect } from 'react-redux';
-import * as actions from "../../../store/actions"
-import './TableManageUser.scss'
-
-import MarkdownIt from 'markdown-it';
-import MdEditor from 'react-markdown-editor-lite';
-import 'react-markdown-editor-lite/lib/index.css';
-
-
-
-
-
-// Initialize Markdown parser
-const mdParser = new MarkdownIt(/* Markdown-it options */);
-
-// Finish!
-function handleEditorChange({ html, text }) {
-    console.log('handleEditorChange', html, text);
-}
+import * as actions from '../../../store/actions';
+import ScrollIntoView from 'react-scroll-into-view';
+import { FaPencilAlt, FaTrashAlt } from 'react-icons/fa';
 
 class TableManageUser extends Component {
-
-    // Constructor to initialize state and bind methods
     constructor(props) {
         super(props);
         this.state = {
-            usersRedux: []
-        }
+            users: [],
+            keyForm: [],
+        };
+    }
+    componentDidMount() {
+        // this.props.fetchAllUSerRedux();
     }
 
-    componentDidMount() {
-        this.props.fetchUserRedux();
-        
-    }
-    componentDidUpdate(prevProps, prevState, snapshot) {
-        if(prevProps.listUsers !== this.props.listUsers){
+    componentDidUpdate(prevProps) {
+        if (prevProps.allUserRedux !== this.props.allUserRedux) {
             this.setState({
-                usersRedux: this.props.listUsers
-            })
+                users: this.props.allUserRedux,
+            });
         }
     }
-    handleOnDeleteUser = (user) => {
-            this.props.deleteUserRedux((user.id));
-    }      
-    handleEditUser = (user) => {
-            this.props.handleEditUserFromParentKey(user);
-    }    
+    handleClickDestroyUser = (userId) => {
+        this.props.toggleModelConfirm(userId);
+    };
+
+    convertKeyToValue = (itemId, arrData) => {
+        if (!itemId || arrData?.length <= 0) return '';
+        for (let item of arrData) {
+            if (item.keyMap === itemId) {
+                return item.valueVi;
+            }
+        }
+    };
+
     render() {
-        let arrUsers = this.state.usersRedux;
         return (
             <React.Fragment>
-                <table id="TableManageUser">
-                    <tbody>
-                        <tr>
-                            <th>Email</th>
-                            <th>First name</th>
-                            <th>Last name</th>
-                            <th>Address</th>
-                            <th>Actions</th>
-                        </tr>
-                        {arrUsers && arrUsers.length >0 &&
-                            arrUsers.map((item,index)=>{
+                <div className="users-table ">
+                    <table className="table table-hover">
+                        <tbody>
+                            <tr className="fixedTop">
+                                <th>STT</th>
+                                <th>Email</th>
+                                <th>Họ tên</th>
+                                <th>Giới tính</th>
+                                <th>Địa chỉ</th>
+                                <th>Chức vụ</th>
+                                <th>Hành động</th>
+                            </tr>
+                            {this.props.users.map((user, index) => {
                                 return (
-                                    <tr key={index}>
-                                        <td>{item.email}</td>
-                                        <td>{item.firstName}</td>
-                                        <td>{item.lastName}</td>
-                                        <td>{item.address}</td>
+                                    <tr key={user.id}>
+                                        <td>{index + 1}</td>
+                                        <td>{user.email}</td>
+                                        <td>{`${user.firstName} ${user.lastName}`}</td>
                                         <td>
-                                            <button 
-                                                onClick={() => this.handleEditUser(item)}
-                                                className="btn-edit"><i className="fas fa-pencil-alt"></i></button>
-                                            <button 
-                                                onClick={()=> this.handleOnDeleteUser(item)}
-                                                className="btn-delete"><i className="fas fa-trash"></i></button>
+                                            {this.convertKeyToValue(user.gender, this.props?.keyForm?.genders || []) ||
+                                                ''}
+                                        </td>
+                                        <td>{user.address || ''}</td>
+                                        <td>
+                                            {this.convertKeyToValue(user.roleId, this.props?.keyForm?.roles || []) ||
+                                                ''}
+                                        </td>
+                                        <td className="dfc">
+                                            <ScrollIntoView selector="#user-redux">
+                                                <button
+                                                    className=" trans btn btn-edit"
+                                                    onClick={() => {
+                                                        this.props.handleClickEditUser(user);
+                                                    }}
+                                                >
+                                                    <FaPencilAlt />
+                                                </button>
+                                            </ScrollIntoView>
+                                            <button
+                                                className=" trans btn btn-delete"
+                                                // onClick={() => this.handleDeleteUser(user.id)}
+                                                onClick={() => this.handleClickDestroyUser(user.id)}
+                                            >
+                                                <FaTrashAlt />
+                                            </button>
                                         </td>
                                     </tr>
-                                )
-                            })
-                        }
-                    </tbody>
-                </table>
-                <MdEditor
-                    style={{ height: '500px' }}
-                    renderHTML={text => mdParser.render(text)}
-                    onChange={handleEditorChange}
-                    value="**Hello world!**"
-                />
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             </React.Fragment>
-
         );
     }
-
 }
 
-const mapStateToProps = state => {
+const mapStateToProps = (state) => {
     return {
-        listUsers: state.admin.users
+        allUserRedux: state.admin.allUser,
+        keyForm: state.admin.keyForm,
     };
 };
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch) => {
     return {
-        fetchUserRedux: () => dispatch(actions.fetchAllUsersStart()),
-        deleteAUserRedux: (id) => dispatch(actions.deleteAUser(id))
+        fetchAllUSerRedux: () => dispatch(actions.filterAndPagingUserRedux()),
     };
 };
 

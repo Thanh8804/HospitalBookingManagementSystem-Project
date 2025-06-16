@@ -12,6 +12,7 @@ RUN npm install && npm cache clean --force
 COPY src ./src
 COPY .babelrc .
 COPY .sequelizerc .
+# COPY .env .
 
 
 # Stage 2: Production
@@ -37,7 +38,7 @@ RUN chown -R appuser:appgroup /app
 USER appuser
 
 # Expose port
-EXPOSE  8080
+EXPOSE  8000
 
 # Start servera
 CMD ["npm", "start"]

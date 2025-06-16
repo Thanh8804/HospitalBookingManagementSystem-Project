@@ -1,64 +1,171 @@
 {
+    "language": "EN",
     "home-header": {
-        "speciality": "Medical specialty",
-        "searchdoctor": "Find doctor by specialty",
-        "health-facility": "Health facility",
-        "select-room": "Choose hospital, clinic",
+        "specialty": "Medical specialty",
+        "searchDoctor": "Find a doctor by specialty",
+        "health-facility": "Health facilities",
+        "select-room": "Choose hospital clinic",
         "doctor": "Doctor",
-        "select-doctor": "Choose good doctor",
-        "fee": "Checkup package",
+        "select-doctor": "Choose a good doctor",
+        "fee": "Health checkup package",
         "check-health": "General health check",
         "support": "Support",
-        "welcome":"welcome"
+        "login": "Login",
+        "welcome": "Welcome"
     },
-    "banner":{
-        "title1": "MEDICAL PLATFORM",
-        "title2": "COMPREHENSIVE HEALTHCARE",
-        "child1": "Specialist consultation",
-        "child2": "Telemedicine",
-        "child3": "General check-up",
-        "child4": "Medical testing",
-        "child5": "Mental health",
-        "child6": "Dental care"
+    "banner": {
+        "title": "MEDICAL PLATFORM",
+        "slogan": "COMPREHENSIVE HEALTH CARE",
+        "placeholder": "Find a hospital"
     },
-    "section": {
-        "section1": "Popular Specialties"
+    "confirm": {
+        "title": "Are you sure?????",
+        "accept": "Accept",
+        "close": "Cancel"
     },
-    
+    "options": {
+        "specialist_examination": "Specialist examination",
+        "Remote_medical_examination": "Remote medical examination",
+        "Physical_exam": "Physical exam",
+        "Testing_Service": "Testing Service",
+        "Mental_health": "Mental health",
+        "Dental_examination": "Dental examination",
+        "Surgery_pack": "Surgery pack",
+        "Home_check-up": "Home check up",
+        "Corporate_health": "Corporate health"
+    },
+
+    "login": {
+        "login": "Login",
+        "username": "Username",
+        "password": "Password",
+        "userpass-wrong": "Invalid username or password!"
+    },
     "menu": {
         "admin": {
-            "manage-user": "Manage user",
-            "manage-doctor": "Manage doctor",
+            "manage-user": "Manage users",
+            "manage-doctor": "Create information doctor",
             "manage-admin": "Manage admin",
-            "crud": "CRUD",
-            "crud-redux": "CRUD Redux",
-            "clinic": "Clinics",
-            "manage-clinic": "Manage clinics",
-            "specialty": "Specialties",
-            "manage-specialty": "Manage specialties",
-            "handbook": "Handbooks",
-            "manage-handbook": "Manage handbooks"
+            "crud": "CRUD user",
+            "crud-redux": "Manage user",
+            "manage-clinic": "Manage clinic",
+            "listClinic": "List Clinic",
+            "clinic": "Manage clinic",
+            "manage-specialty": "Manage specialty",
+            "listSpecialty": "List specialty",
+            "specialty": "Manage specialty",
+            "manage-handbook": "Manage handbook",
+            "handbook": "Create handbook",
+            "listHandbook": "List Handbook",
+            "news": "Create news",
+            "listNews": "List News"
+        },
+        "doctor": {
+            "manage-schedule": "Manage Doctor`s schedule",
+            "manage-appointment": "Manage Doctor`s appointment"
         }
-    
-        
     },
-    "manage-user":{
+    "manage-user": {
         "add": "Add new user",
-        "email": "Email",
+        "email": "email",
         "password": "Password",
-        "first-name": "First name",
-        "last-name": "Last name",
-        "phone-number": "Phone number",
+        "firstName": "FirstName",
+        "lastName": "LastName",
         "address": "Address",
-        "gender": "Gender",
-        "role": "Role",
-        "position": "Position",
+        "phoneNumber": "PhoneNumber",
         "image": "Avatar",
-        "save": "Save user",
-        "edit": "Edit user"
+        "gender": "Gender",
+        "position": "Position",
+        "role": "Role",
+        "uploadImage": "Upload",
+        "save": "Save",
+        "edit": "Change",
+        "cancel": "Cancel"
     },
-    "homepage":{
-        "outstanding-doctor":"Last week's featured doctor",
-        "more-infor": "More infor"
+    "homepage": {
+        "out-standing-doctor": "Out standing doctor",
+        "more": "More",
+        "specialty": "Popular specialties",
+        "clinic": "Outstanding medical facility",
+        "handbook": "Handbook",
+        "about": "Media talk about BookingCare",
+        "search": "Search",
+        "all-handbook": "All"
+    },
+    "schedule": {
+        "title": "MANAGE DOCTOR'S EXAMINATION PLAN",
+        "chooseDoctor": "Choose Doctor",
+        "chooseDate": "Choose Date",
+        "save": "Save"
+    },
+    "appointment": {
+        "title": "Manage doctor's appointments",
+        "chooseDate": "Choose Date",
+        "doctor": "Doctor",
+        "appointment-title": "Appointment schedule",
+        "stt": "Order",
+        "time": "Time",
+        "fullname": "Fullname",
+        "birth": "Year of birth",
+        "gender": "Gender",
+        "address": "Address",
+        "reason": "Reason",
+        "confirm": "Confirm",
+        "noAppointment": "No appointment scheduled yet",
+        "newSchedule": "New schedule",
+        "confirmed": "Confirmed",
+        "remind": "Remind",
+        "cancel": "Canceled",
+        "send-mail": "Send mail",
+        "cancel": "Cancel"
+    },
+    "patient": {
+        "schedule": {
+            "schedule-title": "Schedule",
+            "text-no-schedule": "No appointments during this time, please choose another time!",
+            "text1": "Select",
+            "text2": "and book (Scheduling fee 0 VND)",
+            "addressClinic": "Medical address",
+            "price": "Price",
+            "priceText": "Prioritize check-ups before booking through BookingCare",
+            "typePaymentText": "Patients can pay in"
+        },
+        "verify": {
+            "title-verify-success": "Appointment confirmed successfully",
+            "title-verify-fail": "Appointment does not exist or has been verified",
+            "home": "Home"
+        },
+        "doctor": {
+            "more": "More",
+            "hide": "Hide less"
+        }
+    },
+    "admin": {
+        "manage-doctor": {
+            "title": "Create information doctor",
+            "select-doctor": "Select a doctor",
+            "intro": "Introduction",
+            "save": "Save",
+            "change": "Change",
+            "select-province": "Select province",
+            "name-clinic": "Name clinic",
+            "address-clinic": "Address clinic",
+            "select-price": "Select price",
+            "select-payment": "Select payment",
+            "select-specialty": "Select specialty",
+            "note": "Note",
+            "detail-doctor": "Detail about to doctor"
+        },
+        "status": {
+            "new": "Waiting",
+            "confirmed": "Confirmed",
+            "canceled": "Canceled"
+        },
+        "role": {
+            "all": "All",
+            "admin": "Admin",
+            "doctor": "Doctor",
+            "patient": "Patient"
+        }
     }
 }
