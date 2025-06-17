@@ -22,12 +22,12 @@ let requestRefreshToken = async (req, res) => {
         const newAccessToken = await signAccessToken(payload);
         const newRefreshToken = await signRefreshToken(payload);
 
-        // res.cookie('refreshToken', newRefreshToken, {
-        //     httpOnly: true,
-        //     secure: false,
-        //     path: '/',
-        //     sameSite: 'strict',
-        // });
+        res.cookie('refreshToken', newRefreshToken, {
+            httpOnly: true,
+            secure: false,
+            path: '/',
+            sameSite: 'Lax', // 'Strict' or 'Lax' for production, 'None' for cross-origin requests
+        });
         return res.status(200).json({
             errorCode: 0,
             accessToken: newAccessToken,
@@ -62,10 +62,14 @@ let logoutUser = async (req, res) => {
                     errorCode: 1,
                     message: 'you are not a user please try again',
                 });
-            return res.clearCookie('accessToken').status(200).json({
-                errorCode: 0,
-                message: 'Logout done',
-            });
+            return res
+                .clearCookie('accessToken')
+                .clearCookie('refreshToken') // ✅ xóa luôn refreshToken
+                .status(200)
+                .json({
+                    errorCode: 0,
+                    message: 'Logout done',
+                });
         });
     } catch (error) {
         console.log(error);
