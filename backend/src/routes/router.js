@@ -10,6 +10,22 @@ import clinicController from '../controller/clinicController';
 import JWTController from '../controller/JWTController';
 
 import middlewareController from '../middleware/middlewareController';
+import multer from 'multer'; // Dùng để xử lý file upload
+import path from 'path';
+import uploadController from '../controller/uploadController'; // Controller xử lý logic lưu ảnh
+
+// Cấu hình lưu file vào thư mục local
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'src/public/uploads'); // Thư mục lưu ảnh
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + file.originalname;
+        cb(null, uniqueSuffix); // Tên file = thời gian + tên gốc
+    },
+});
+
+const upload = multer({ storage }); // Tạo middleware upload
 
 let router = express.Router();
 
@@ -82,6 +98,9 @@ let initWebRoutes = (app) => {
     router.post('/api/confirm-news', middlewareController.verifyAdmin, newsController.confirmNews);
     router.post('/api/delete-news', middlewareController.verifyAdmin, newsController.deleteNews);
     router.get('/api/check-queue-news', middlewareController.verifyDoctor, newsController.checkQueueNews);
+
+    // API upload ảnh lưu về local
+    router.post('/api/upload', upload.single('file'), uploadController.handleUploadFile);
 
     return app.use('/', router);
 };

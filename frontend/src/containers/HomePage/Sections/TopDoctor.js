@@ -7,6 +7,7 @@ import 'slick-carousel/slick/slick-theme.css';
 import * as actions from '../../../store/actions';
 import { LANGUAGES } from '../../../utils';
 import { withRouter } from 'react-router';
+import iconDoctor from '../../../assets/images/icon-doctor.jpg'; // cập nhật đúng đường dẫn
 
 // import './TopDoctor.scss';
 import { PrevArrow, NextArrow } from '../../../components/CustomArrow';
@@ -88,12 +89,10 @@ class TopDoctor extends Component {
                                                 <div className={`img-${this.props.type}`}>
                                                     <img
                                                         className="img"
-                                                        src={
-                                                            doctor?.imageURL ||
-                                                            'https://firebasestorage.googleapis.com/v0/b/bookingcare-6a74c.appspot.com/o/files%2Fuser%2Fuser_d%C3%A8ault.png?alt=media&token=22bdda3a-856e-416d-bce5-b9e52a6004c7'
-                                                        }
+                                                        src={doctor?.imageURL || iconDoctor}
                                                         alt="img"
                                                     />
+
                                                 </div>
 
                                                 <h4 className="position">

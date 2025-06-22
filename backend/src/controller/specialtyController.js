@@ -7,18 +7,31 @@ import {
     deleteSpecialtyByIdServices,
 } from '../services/specialtyServices';
 
+// let postSpecialty = async (req, res) => {
+//     try {
+//         let response = await postSpecialtyServices(req.body);
+//         return res.status(200).json(response);
+//     } catch (error) {
+//         console.log(error);
+//         return res.status(402).json({
+//             errorCode: 1,
+//             message: 'Error from server',
+//         });
+//     }
+// };
 let postSpecialty = async (req, res) => {
     try {
         let response = await postSpecialtyServices(req.body);
         return res.status(200).json(response);
     } catch (error) {
         console.log(error);
-        return res.status(402).json({
+        return res.status(500).json({
             errorCode: 1,
             message: 'Error from server',
         });
     }
 };
+
 let getAllSpecialty = async (req, res) => {
     try {
         let response = await getAllSpecialtyServices();

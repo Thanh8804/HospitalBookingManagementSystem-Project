@@ -37,13 +37,12 @@ class Footer extends Component {
                                                     backgroundImage: `url(https://bookingcare.vn/assets/icon/bookingcare-2020.svg)`,
                                                 }}
                                             ></div>
-                                            <h2 className="company">Công ty Cổ phần Công nghệ BookingCare</h2>
+                                            <h2 className="company">Hospital Booking</h2>
                                             <div className="address">
-                                                <IoLocationSharp /> 28 Thành Thái, Dịch Vọng, Cầu Giấy, Hà Nội
+                                                <IoLocationSharp /> Đông Hòa - Dĩ An - Bình Dương
                                             </div>
                                             <div className="dk">
-                                                <IoCheckmarkSharp /> ĐKKD số: 0106790291. Sở KHĐT Hà Nội cấp ngày
-                                                16/03/2015
+                                                <IoCheckmarkSharp /> TP Hồ Chí Minh 06/2025
                                             </div>
                                             <div className="iso"></div>
                                         </div>
@@ -72,15 +71,15 @@ class Footer extends Component {
                                         <div className="branch-footer col-lg-3 col-md-6">
                                             <div className="branch">
                                                 <h4>Trụ sở tại Hà Nội</h4>
-                                                <p>28 Thành Thái, Dịch Vọng, Cầu Giấy, Hà Nội</p>
+                                                <p>Cầu giấy</p>
                                             </div>
                                             <div className="branch">
                                                 <h4>Văn phòng tại TP Hồ Chí Minh</h4>
-                                                <p>Số 01, Hồ Bá Kiện, Phường 15, Quận 10</p>
+                                                <p>Thủ Đức</p>
                                             </div>
                                             <div className="branch">
                                                 <h4>Hỗ trợ khách hàng</h4>
-                                                <p>support@bookingcare.vn (7h - 18h)</p>
+                                                <p>leevanphu2905@gmail.com (7h - 18h)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -88,8 +87,7 @@ class Footer extends Component {
                                         {' '}
                                         <IoPhonePortraitOutline />
                                         <p>
-                                            Tải ứng dụng BookingCare cho điện thoại hoặc máy tính bảng: Android
-                                            iPhone/iPad Khác
+                                            Ứng dụng đặt lịch khám bệnh trực tuyến 
                                         </p>
                                     </div>
                                 </div>
@@ -101,7 +99,7 @@ class Footer extends Component {
                 <div className="footer-down">
                     <div className="w60">
                         <div className="content-footer">
-                            <small>&copy;2022 BookingCare.</small>
+                            <small>&copy;2025 Hospital Booking.</small>
                             <span>
                                 <IoLogoFacebook className="icon-network facebook" />
                                 <IoLogoYoutube className="icon-network youtube" />
