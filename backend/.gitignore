@@ -3,3 +3,4 @@
 /.idea
 .idea/
 .env
+backend/src/config/firebase_account.json
