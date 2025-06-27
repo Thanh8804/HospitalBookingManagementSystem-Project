@@ -1,6 +1,8 @@
 {
     "name": "bookingcare",
     "version": "0.1.0",
+    "description": "Ứng dụng đặt lịch khám bệnh cho bệnh viện",
+    "author": "Lê Văn Phú & Đặng Chí Thành",
     "private": true,
     "dependencies": {
         "@ckeditor/ckeditor5-build-classic": "^36.0.1",

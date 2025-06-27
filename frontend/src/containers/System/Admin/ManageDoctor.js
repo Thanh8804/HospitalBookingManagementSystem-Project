@@ -38,6 +38,7 @@ class ManageDoctor extends Component {
 
             addressClinic: '',
             note: '',
+            image: '',
 
             isShowLoading: false,
         };
@@ -46,6 +47,26 @@ class ManageDoctor extends Component {
         this.props.fetchAllDoctorRedux();
         this.props.fetchRelateToDoctorInforRedux();
     }
+    handleUploadImage = async (e) => {
+        const file = e.target.files[0];
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", "bookingcare_preset"); // 👈 thay bằng preset bạn đã tạo
+        
+
+        try {
+            const res = await fetch("https://api.cloudinary.com/v1_1/dpvcw17p7/image/upload", {
+                method: "POST",
+                body: formData,
+            });
+
+            const data = await res.json();
+            this.setState({ image: data.secure_url });
+        } catch (err) {
+            console.error("Lỗi upload ảnh:", err);
+        }
+    };
+
     componentDidUpdate(prevProps) {
         if (prevProps.allDoctorRedux !== this.props.allDoctorRedux) {
             let listDoctor = this.buildInputSelectName(this.props.allDoctorRedux);
@@ -77,6 +98,7 @@ class ManageDoctor extends Component {
             });
         }
     }
+    
 
     buildInputSelectName = (data) => {
         let result = [];
@@ -184,9 +206,10 @@ class ManageDoctor extends Component {
             selectedProvince: this.state.selectedProvince.value,
             selectedSpecialty: this.state.selectedSpecialty.value,
             selectedClinic: this.state.selectedClinic.value,
-            nameClinic: this.state.selectedClinic.value,
+            nameClinic: this.state.selectedClinic.label,
             addressClinic: this.state.addressClinic,
             note: this.state.note,
+            image: this.state.image,
         };
         let res = await saveDetailDoctorServices(data);
         if (res && res.errorCode === 0) {
@@ -365,16 +388,45 @@ class ManageDoctor extends Component {
                         />
                     </div>
                     <div className="form-row mt-2">
-                        <label>
-                            <FormattedMessage id="admin.manage-doctor.intro" />
-                        </label>
-                        <textarea
-                            className="info-doctor form-control"
-                            rows="4"
-                            onChange={(e) => this.onChangeInput('description', e.target.value)}
-                            value={description}
-                        ></textarea>
+                        {/* Mô tả giới thiệu bác sĩ */}
+                        <div className="form-group col-md-6">
+                            <label>
+                                <FormattedMessage id="admin.manage-doctor.intro" />
+                            </label>
+                            <textarea
+                                className="form-control"
+                                rows="4"
+                                onChange={(e) => this.onChangeInput('description', e.target.value)}
+                                value={description}
+                            ></textarea>
+                        </div>
+
+                        {/* Chọn ảnh đại diện bác sĩ */}
+                        <div className="form-group col-md-6">
+                            <label>Ảnh đại diện bác sĩ (avatar)</label>
+                            <input
+                                type="file"
+                                className="form-control"
+                                accept="image/*"
+                                onChange={this.handleUploadImage}
+                            />
+                            {this.state.image && (
+                                <img
+                                    src={this.state.image}
+                                    alt="Ảnh bác sĩ"
+                                    style={{
+                                        width: '120px',
+                                        height: '120px',
+                                        marginTop: '10px',
+                                        objectFit: 'cover',
+                                        borderRadius: '8px',
+                                        border: '1px solid #ccc',
+                                    }}
+                                />
+                            )}
+                        </div>
                     </div>
+
                     <div className="manage-doctor-editor">
                         <label className="title-editor">
                             <FormattedMessage id="admin.manage-doctor.detail-doctor" />

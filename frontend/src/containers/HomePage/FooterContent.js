@@ -23,7 +23,7 @@ class FooterContent extends Component {
         return (
             <div className="footer-content-container ">
                 <div className="btn-more-content" onClick={this.handelClickMore}>
-                    <p>Vai trò của BookingCare</p>
+                    <p>Vai trò của Hospital Booking</p>
                     <span className="icon-more">{isShow ? <IoCaretUp /> : <IoCaretDown />}</span>
                 </div>
 

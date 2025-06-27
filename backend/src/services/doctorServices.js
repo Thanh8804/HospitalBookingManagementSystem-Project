@@ -20,29 +20,33 @@ let getTopDoctorHomeService = async (limit) => {
                     { model: db.Allcode, as: 'genderData', attributes: ['valueEn', 'valueVi'] },
                     {
                         model: db.Doctor_Infor,
-                        attributes: ['id', 'doctorId', 'specialtyId', 'nameClinic'],
+                        attributes: ['id', 'doctorId', 'specialtyId', 'clinicId', 'clinicId'],
+                        include: [
+                            {
+                                model: db.Clinics,
+                                as: 'clinicData',
+                                attributes: ['id', 'nameClinic'],
+                                required: false // 👉 tránh lỗi nếu clinic chưa có
+                            }
+                        ],
                     },
                 ],
                 raw: true,
                 nest: true,
             });
 
-            if (!doctors) {
-                resolve({
-                    errorCode: 1,
-                    message: 'cant get top doctor',
-                });
-            } else {
-                resolve({
-                    errorCode: 0,
-                    data: doctors,
-                });
-            }
+            resolve({ errorCode: 0, data: doctors });
         } catch (error) {
-            reject(error);
+            console.log('🔥 LỖI getTopDoctorHomeService:', error); // ⚠️ log chi tiết ra terminal
+            resolve({
+                errorCode: 1,
+                message: 'Error in server...',
+                errorDetail: error.message
+            });
         }
     });
 };
+
 
 let getAllDoctorsServices = () => {
     return new Promise(async (resolve, reject) => {
@@ -85,6 +89,7 @@ let getAllDoctorsServices = () => {
 let saveDetailDoctorService = (data) => {
     return new Promise(async (resolve, reject) => {
         try {
+            console.log('📌 DATA NHẬN VỀ:', data);
             const listData = [
                 { field: 'doctorId', text: 'Chưa chọn bác sĩ' },
                 { field: 'selectedProvince', text: 'Chưa chọn tỉnh thành' },
@@ -110,6 +115,7 @@ let saveDetailDoctorService = (data) => {
             if (doctor) {
                 await doctor.update({
                     contentHTML: data.contentHTML,
+                    contentMarkdown: data.contentMarkdown || '',
                     description: data.description,
                     doctorId: data.doctorId,
                 });
@@ -117,6 +123,7 @@ let saveDetailDoctorService = (data) => {
             } else {
                 await db.Markdown.create({
                     contentHTML: data.contentHTML,
+                    contentMarkdown: data.contentMarkdown || '',
                     description: data.description,
                     doctorId: data.doctorId,
                 });
@@ -132,7 +139,8 @@ let saveDetailDoctorService = (data) => {
                     paymentId: data.selectedPayment,
                     provinceId: data.selectedProvince,
                     specialtyId: data.selectedSpecialty,
-                    nameClinic: data.nameClinic,
+                    clinicId: data.selectedClinic, // ✅ truyền đúng id của clinic
+
                     addressClinic: data.addressClinic,
                     note: data.note,
                 });
@@ -144,17 +152,31 @@ let saveDetailDoctorService = (data) => {
                     paymentId: data.selectedPayment,
                     provinceId: data.selectedProvince,
                     specialtyId: data.selectedSpecialty,
-                    nameClinic: data.nameClinic,
+                    clinicId: data.selectedClinic,          // ✅ đúng ID kiểu số
                     addressClinic: data.addressClinic,
                     note: data.note,
                 });
+
             }
+            // Cập nhật ảnh avatar nếu có
+            if (data.image) {
+                await db.User.update(
+                    { imageURL: data.image },  // ⚠️ đảm bảo DB có cột `imageURL` hoặc `image`
+                    { where: { id: data.doctorId } }
+                );
+            }
+
             resolve({
                 errorCode: 0,
                 message: 'Thêm thông tin bác sĩ thành công.',
             });
         } catch (error) {
-            reject(error);
+            console.error('❌ BACKEND LỖI:', error); // 👈 THÊM
+            resolve({
+                errorCode: 1,
+                message: 'Save detail doctor fail',
+                errorDetail: error.message, // 👈 để client biết lỗi gì
+            });
         }
     });
 };
@@ -162,9 +184,10 @@ let saveDetailDoctorService = (data) => {
 let getDetailDoctorByIdServices = (id) => {
     return new Promise(async (resolve, reject) => {
         try {
+            
             let data = await db.User.findOne({
                 where: { id: id },
-                attributes: { exclude: ['password'], include: ['firstName', 'lastName'] },
+                attributes: { exclude: ['password'], include: ['firstName', 'lastName', 'imageURL'] },
                 include: [
                     { model: db.Markdown, attributes: ['contentHTML', 'contentMarkdown', 'description'] },
                     { model: db.Allcode, as: 'positionData', attributes: ['valueEn', 'valueVi'] },
@@ -303,6 +326,9 @@ let getAppointmentDoctorByDateService = (doctorId, date, statusId) => {
             if (!doctorId && !date) {
                 resolve({ errorCode: 1, message: 'Missing parameter appointment' });
             } else {
+                if (date.length === 13) {
+                    date = Math.floor(+date / 1000).toString(); // chuẩn hóa về giây dạng string
+                }
                 let data = await db.Booking.findAll({
                     where: { doctorId: doctorId, date: date, statusId: statusId },
                     attributes: { exclude: ['uuid'] },
@@ -378,6 +404,7 @@ let filterAndPagingServices = (q) => {
             let { offset, limit, keyword, roleId } = q;
             keyword = keyword ? keyword.trim() : '';
             const where = {};
+
             if (keyword) {
                 where[Op.or] = [
                     { firstName: { [Op.like]: `%${keyword}%` } },
@@ -390,34 +417,41 @@ let filterAndPagingServices = (q) => {
                 where[Op.and] = [{ roleId: { [Op.like]: `${roleId}` } }];
             }
 
-            const order = [['id', 'DESC']];
-            const attributes = { exclude: ['password'] };
             const { count, rows } = await db.User.findAndCountAll({
                 where,
-                order,
-                offset: offset,
-                limit: limit,
+                offset,
+                limit,
                 order: [['createdAt', 'DESC']],
+                attributes: { exclude: ['password'] },
                 include: [
                     { model: db.Allcode, as: 'positionData', attributes: ['valueEn', 'valueVi'] },
                     { model: db.Allcode, as: 'genderData', attributes: ['valueEn', 'valueVi'] },
                     {
                         model: db.Doctor_Infor,
-                        attributes: ['id', 'doctorId', 'specialtyId', 'nameClinic'],
+                        attributes: ['id', 'doctorId', 'specialtyId', 'clinicId'],
+                        include: [
+                            {
+                                model: db.Clinics,
+                                as: 'clinicData',
+                                attributes: ['id', 'nameClinic'],
+                            },
+                        ],
                     },
                 ],
-                attributes,
                 raw: true,
                 nest: true,
             });
+
             const totalPage = Math.ceil(Number(count) / Number(limit));
 
             resolve({ errorCode: 0, data: { rows, count, totalPage } });
         } catch (error) {
-            reject({ errorCode: 1, message: error });
+            console.log('💥 Error in filterAndPagingServices:', error);
+            reject({ errorCode: 1, message: 'Có lỗi xảy ra ở server' });
         }
     });
 };
+
 
 module.exports = {
     getTopDoctorHomeService,
