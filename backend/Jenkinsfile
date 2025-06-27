@@ -1,56 +1,7 @@
 pipeline {
     agent {
         kubernetes {
-            yaml '''
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: node
-    image: node:14-alpine
-    command:
-    - sleep
-    args:
-    - infinity
-  - name: kaniko
-    image: gcr.io/kaniko-project/executor:debug
-    command:
-    - sleep
-    args:
-    - 9999999
-    volumeMounts:
-    - name: docker-config
-      mountPath: /kaniko/.docker
-    resources:
-      requests:
-        cpu: "300m"
-        memory: "512Mi"
-      limits:
-        cpu: "600m"
-        memory: "1024Mi"
-  - name: trivy 
-    image: aquasec/trivy:latest 
-    command: 
-    - sleep
-    args:
-    - 9999999
-    resources:
-        requests:
-        cpu: "400m"
-        memory: "800Mi"
-    limits:
-        cpu: "800m"
-        memory: "1200Mi"
-  volumes:
-  - name: docker-config
-    projected:
-      sources:
-      - secret:
-          name: docker-credentials
-          items:
-          - key: .dockerconfigjson
-            path: config.json
-'''
+            yamlFile '../jenkins/pod-template.yaml'
         }
     }
     environment {
@@ -65,7 +16,6 @@ spec:
         ARGOCD_SERVER_URL = 'argocd-server.argocd.svc.cluster.local:443'
         ARGOCD_DEV_APP = 'hospital-booking-backend-development'
         ARGOCD_PROD_APP = 'hospital-booking-backend-production'
-        REPO_UPDATE_URL = "https://${GIT_TOKEN}@github.com/Thanh8804/hospital-booking-manifests.git"
     }
     stages {
         stage('Checkout') {
@@ -256,7 +206,7 @@ spec:
                                 git config user.name "Thanh8804@"
                                 git add overlays/dev/kustomization.yaml
                                 git commit -m "Update dev image to $IMAGE_NAME:${BUILD_NUMBER}" || echo "No changes to commit"
-                                git push $REPO_UPDATE_URL HEAD:main
+                                git push https://${GIT_TOKEN}@github.com/Thanh8804/hospital-booking-manifests.git
                             '''
                         }
                     }
@@ -297,7 +247,7 @@ spec:
                                 git config user.name "Thanh8804@"
                                 git add overlays/prod/kustomization.yaml
                                 git commit -m "Update prod image to $IMAGE_NAME:${BUILD_NUMBER}" || echo "No changes to commit"
-                                git push $REPO_UPDATE_URL HEAD:main
+                                git push https://$GIT_TOKEN@github.com/Thanh8804/hospital-booking-manifests.git
                             '''
                         }
                     }
