@@ -15,8 +15,8 @@ spec:
       mountPath: /kaniko/.docker
     resources:
       requests:
-        cpu: "350m"
-        memory: "512Mi"
+        cpu: "400m"
+        memory: "1000Mi"
       limits:
         cpu: "600m"
         memory: "1024Mi"
