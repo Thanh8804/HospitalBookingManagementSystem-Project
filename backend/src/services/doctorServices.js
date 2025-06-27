@@ -326,6 +326,9 @@ let getAppointmentDoctorByDateService = (doctorId, date, statusId) => {
             if (!doctorId && !date) {
                 resolve({ errorCode: 1, message: 'Missing parameter appointment' });
             } else {
+                if (date.length === 13) {
+                    date = Math.floor(+date / 1000).toString(); // chuẩn hóa về giây dạng string
+                }
                 let data = await db.Booking.findAll({
                     where: { doctorId: doctorId, date: date, statusId: statusId },
                     attributes: { exclude: ['uuid'] },
