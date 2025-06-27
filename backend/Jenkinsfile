@@ -62,6 +62,10 @@ spec:
         REPO_URL = 'https://github.com/Thanh8804/hospital-booking-project.git'
         MANIFEST_REPO = 'https://github.com/Thanh8804/hospital-booking-manifests.git'
         NOTIFY_EMAIL = 'chithanh080804@gmail.com'
+        ARGOCD_SERVER_URL = 'argocd-server.argocd.svc.cluster.local:443'
+        ARGOCD_DEV_APP = 'hospital-booking-backend-development'
+        ARGOCD_PROD_APP = 'hospital-booking-backend-production'
+        REPO_UPDATE_URL = "https://${GIT_TOKEN}@github.com/Thanh8804/hospital-booking-manifests.git"
     }
     stages {
         stage('Checkout') {
@@ -252,7 +256,7 @@ spec:
                                 git config user.name "Thanh8804@"
                                 git add overlays/dev/kustomization.yaml
                                 git commit -m "Update dev image to $IMAGE_NAME:${BUILD_NUMBER}" || echo "No changes to commit"
-                                git push https://$GIT_TOKEN@github.com/Thanh8804/hospital-booking-manifests.git HEAD:main
+                                git push $REPO_UPDATE_URL HEAD:main
                             '''
                         }
                     }
@@ -271,8 +275,8 @@ spec:
                             curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
                             install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
                             rm argocd-linux-amd64
-                            argocd login argocd-server.argocd.svc.cluster.local:443 --username admin --password $ARGOCD_TOKEN --insecure
-                            argocd app sync hospital-booking-backend-development
+                            argocd login $ARGOCD_SERVER_URL --username admin --password $ARGOCD_TOKEN --insecure
+                            argocd app sync $ARGOCD_DEV_APP
                          '''
                      }
                  }
@@ -293,7 +297,7 @@ spec:
                                 git config user.name "Thanh8804@"
                                 git add overlays/prod/kustomization.yaml
                                 git commit -m "Update prod image to $IMAGE_NAME:${BUILD_NUMBER}" || echo "No changes to commit"
-                                git push https://$GIT_TOKEN@github.com/Thanh8804/hospital-booking-manifests.git HEAD:main
+                                git push $REPO_UPDATE_URL HEAD:main
                             '''
                         }
                     }
@@ -310,7 +314,7 @@ spec:
                         catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                             retry(3) {
                                 sh '''
-                                    argocd app sync hospital-booking-backend-production --timeout 300 > argocd-sync-prod.log 2>&1
+                                    argocd app sync $ARGOCD_PROD_APP --timeout 300 > argocd-sync-prod.log 2>&1
                                     cat argocd-sync-prod.log
                                 '''
                             }
@@ -328,13 +332,13 @@ spec:
             emailext attachLog: true, 
                      body: "The pipeline '${PIPELINE_NAME} Build #${BUILD_NUMBER}' has completed successfully.", 
                      subject: "Pipeline Success: ${PIPELINE_NAME} - Build #${BUILD_NUMBER}", 
-                     to: '$NOTIFY_EMAIL'
+                     to: "$NOTIFY_EMAIL"
         }
         failure {
             emailext attachLog: true, 
                      body: "The pipeline '${PIPELINE_NAME}' has failed. Please review the attached logs.", 
                      subject: "Pipeline Failed: ${PIPELINE_NAME} - Build #${BUILD_NUMBER}", 
-                     to: '$NOTIFY_EMAIL'
+                     to: "$NOTIFY_EMAIL"
         }
     }
 }
