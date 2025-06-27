@@ -70,8 +70,10 @@ let getDetailClinicByIdServices = (id) => {
                 raw: true,
                 attributes: ['id', 'nameClinic', 'addressClinic', 'descriptionHtml', 'imageClinic', 'imageLogo'],
             });
+
+            // ⚠️ CHỈNH Ở ĐÂY: dùng clinicId thay cho nameClinic
             let doctors = await db.Doctor_Infor.findAll({
-                where: { nameClinic: `${id}` },
+                where: { clinicId: id },
                 raw: true,
                 attributes: ['id', 'doctorId'],
             });
@@ -97,6 +99,7 @@ let getDetailClinicByIdServices = (id) => {
         }
     });
 };
+
 
 let filterAndPagingServices = (q) => {
     return new Promise(async (resolve, reject) => {

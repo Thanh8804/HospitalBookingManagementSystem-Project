@@ -21,7 +21,7 @@ class TopDoctor extends Component {
     }
 
     componentDidMount() {
-        this.props.fetchTopDoctorRedux('');
+        this.props.fetchTopDoctorRedux('6');
     }
 
     componentDidUpdate(prevProps) {
@@ -29,6 +29,7 @@ class TopDoctor extends Component {
             this.setState({
                 topDoctors: this.props.topDoctorsRedux,
             });
+            console.log('✅ API topDoctorsRedux:', this.props.topDoctorsRedux);
         }
     }
 

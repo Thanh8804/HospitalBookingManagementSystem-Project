@@ -2,18 +2,20 @@ import doctorServices from '../services/doctorServices';
 
 let getTopDoctorHome = async (req, res) => {
     try {
-        let limit = req.query.limit;
-        if (!limit) limit = 10;
-        let response = await doctorServices.getTopDoctorHomeService(+limit);
+        let limit = parseInt(req.query.limit, 10);
+        if (isNaN(limit) || limit <= 0) limit = 10; // ✅ fallback nếu rỗng, NaN hoặc <= 0
+
+        let response = await doctorServices.getTopDoctorHomeService(limit);
         return res.status(200).json(response);
     } catch (error) {
-        console.log(error);
+        console.log('Error in getTopDoctorHome:', error);
         return res.status(500).json({
             errorCode: 1,
             message: 'Error in server...',
         });
     }
 };
+
 
 let getAllDoctors = async (req, res) => {
     try {
